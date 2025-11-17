@@ -1,0 +1,33 @@
+{
+  "name": "medical-appointment-backend",
+  "version": "1.0.0",
+  "description": "Backend pour système de gestion de rendez-vous médicaux",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "npm install",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "medical",
+    "appointments",
+    "nodejs",
+    "mysql"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-validator": "^7.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.15.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "type": "commonjs"
+}

@@ -1,62 +1,78 @@
-const mysql = require('mysql2');
 require('dotenv').config();
 
-// Configuration du pool de connexions avec gestion d'erreurs
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'medical_appointments',
-  port: process.env.DB_PORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  charset: 'utf8mb4',
-  multipleStatements: false
-});
+// Déterminer le type de base de données à utiliser
+const dbType = process.env.DB_TYPE || 'mysql';
 
-// Convertir en promesses pour async/await
-const promisePool = pool.promise();
+// Charger le module approprié en fonction du type de base de données
+let dbModule;
 
-// Test de connexion au démarrage
-const testConnection = async () => {
-  try {
-    const connection = await promisePool.getConnection();
-    console.log('✅ Connexion MySQL réussie!');
-    connection.release();
-    return true;
-  } catch (error) {
-    console.error('❌ Erreur de connexion MySQL:', error.message);
-    console.error('Vérifiez vos paramètres dans le fichier .env');
-    return false;
-  }
-};
+if (dbType === 'postgres' || dbType === 'postgresql') {
+  console.log('🐘 Using PostgreSQL database');
+  dbModule = require('./database-postgres');
+} else {
+  console.log('🐬 Using MySQL database');
+  // MySQL par défaut
+  const mysql = require('mysql2');
 
-// Gestion des erreurs de pool
-pool.on('error', (err) => {
-  console.error('❌ Erreur MySQL Pool:', err);
-  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-    console.error('Connexion à la base de données perdue. Reconnexion...');
-  }
-});
+  // Configuration du pool de connexions avec gestion d'erreurs
+  const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'medical_appointments',
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+    charset: 'utf8mb4',
+    multipleStatements: false
+  });
 
-// Fonction helper pour exécuter des requêtes avec gestion d'erreurs
-const executeQuery = async (query, params = []) => {
-  try {
-    const [results] = await promisePool.execute(query, params);
-    return { success: true, data: results };
-  } catch (error) {
-    console.error('Erreur de requête SQL:', error.message);
-    console.error('Query:', query);
-    console.error('Params:', params);
-    return { success: false, error: error.message, code: error.code };
-  }
-};
+  // Convertir en promesses pour async/await
+  const promisePool = pool.promise();
 
-module.exports = {
-  pool: promisePool,
-  testConnection,
-  executeQuery
-};
+  // Test de connexion au démarrage
+  const testConnection = async () => {
+    try {
+      const connection = await promisePool.getConnection();
+      console.log('✅ Connexion MySQL réussie!');
+      connection.release();
+      return true;
+    } catch (error) {
+      console.error('❌ Erreur de connexion MySQL:', error.message);
+      console.error('Vérifiez vos paramètres dans le fichier .env');
+      return false;
+    }
+  };
+
+  // Gestion des erreurs de pool
+  pool.on('error', (err) => {
+    console.error('❌ Erreur MySQL Pool:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.error('Connexion à la base de données perdue. Reconnexion...');
+    }
+  });
+
+  // Fonction helper pour exécuter des requêtes avec gestion d'erreurs
+  const executeQuery = async (query, params = []) => {
+    try {
+      const [results] = await promisePool.execute(query, params);
+      return { success: true, data: results };
+    } catch (error) {
+      console.error('Erreur de requête SQL:', error.message);
+      console.error('Query:', query);
+      console.error('Params:', params);
+      return { success: false, error: error.message, code: error.code };
+    }
+  };
+
+  dbModule = {
+    pool: promisePool,
+    testConnection,
+    executeQuery
+  };
+}
+
+module.exports = dbModule;

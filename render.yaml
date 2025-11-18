@@ -1,0 +1,70 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: medical-appointment-db
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile.postgres
+    dockerContext: .
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+    envVars:
+      - key: POSTGRES_USER
+        value: medical_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: medical_appointments
+
+  # Backend API Service
+  - type: web
+    name: medical-appointment-backend
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DB_TYPE
+        value: postgres
+      - key: DB_HOST
+        fromService:
+          type: pserv
+          name: medical-appointment-db
+          property: host
+      - key: DB_USER
+        value: medical_user
+      - key: DB_PASSWORD
+        fromService:
+          type: pserv
+          name: medical-appointment-db
+          envVarKey: POSTGRES_PASSWORD
+      - key: DB_NAME
+        value: medical_appointments
+      - key: DB_PORT
+        value: 5432
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://medical-appointment-frontend.onrender.com
+
+  # Frontend Static Site
+  - type: web
+    name: medical-appointment-frontend
+    runtime: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://medical-appointment-backend.onrender.com/api
